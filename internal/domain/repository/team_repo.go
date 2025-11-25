@@ -9,4 +9,5 @@ import (
 type TeamRepository interface {
 	Create(ctx context.Context, team *domain.Team) error
 	GetByName(ctx context.Context, teamName string) (*domain.Team, error)
+	FindActiveUsers(ctx context.Context, teamName string) ([]*domain.User, error)
 }
