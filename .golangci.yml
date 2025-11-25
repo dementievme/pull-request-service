@@ -1,3 +1,4 @@
+version: 2
 run:
   timeout: 2m
 
@@ -5,11 +6,8 @@ linters:
   enable:
     - govet
     - staticcheck
-    - revive
     - errcheck
-    - gosimple
     - ineffassign
-    - typecheck
 
 issues:
   exclude-use-default: false
