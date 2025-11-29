@@ -16,18 +16,13 @@ func NewPostgreTeamRepository(db *sql.DB) *PostgreTeamRepository {
 }
 
 func (r *PostgreTeamRepository) Create(ctx context.Context, team *entity.Team) error {
-	for _, m := range team.Members {
-		_, err := r.db.ExecContext(ctx,
-			`INSERT INTO users (id, name, is_active, team_name) 
-			 VALUES ($1, $2, $3, $4)
-			 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, is_active=EXCLUDED.is_active, team_name=EXCLUDED.team_name`,
-			m.ID, m.Name, m.IsActive, team.Name,
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO teams (name) 
+		 VALUES ($1)
+		 ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name`,
+		team.Name,
+	)
+	return err
 }
 
 func (r *PostgreTeamRepository) GetByName(ctx context.Context, name string) (*entity.Team, error) {

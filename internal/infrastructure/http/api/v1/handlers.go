@@ -8,19 +8,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func createTeamHandler(usecase *application.TeamUseCase) gin.HandlerFunc {
+func createTeamHandler(teamUseCase *application.TeamUseCase, userUseCase *application.UserUseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var dto dto.TeamDTO
 		if err := c.ShouldBindJSON(&dto); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		team, err := usecase.CreateTeam(c, &dto)
+
+		if _, err := teamUseCase.CreateTeam(c, &dto); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		insertedUsers, err := userUseCase.Create(c, &dto)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"team": team})
+		dto.TeamMembers = insertedUsers
+
+		c.JSON(http.StatusCreated, gin.H{"team": dto})
 	}
 }
 

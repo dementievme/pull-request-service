@@ -20,13 +20,6 @@ func (u *TeamUseCase) CreateTeam(ctx context.Context, dto *application.TeamDTO) 
 	team := &entity.Team{
 		Name: dto.TeamName,
 	}
-	for _, m := range dto.TeamMembers {
-		team.Members = append(team.Members, &entity.User{
-			ID:       m.UserID,
-			Name:     m.UserName,
-			IsActive: m.IsActive,
-		})
-	}
 	if err := u.repo.Create(ctx, team); err != nil {
 		return nil, err
 	}

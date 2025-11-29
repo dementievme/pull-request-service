@@ -17,16 +17,54 @@ func NewPostgreUserRepository(db *sql.DB) *PostgreUserRepository {
 	return &PostgreUserRepository{db: db}
 }
 
-func (r *PostgreUserRepository) Create(ctx context.Context, user *entity.User) error {
-	_, err := r.db.ExecContext(ctx, `
+func (r *PostgreUserRepository) Create(ctx context.Context, users []*entity.User) ([]*entity.User, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO users (id, name, team_name, is_active)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			team_name = EXCLUDED.team_name,
 			is_active = EXCLUDED.is_active
-	`, user.ID, user.Name, user.TeamName, user.IsActive)
-	return err
+		RETURNING id, name, team_name, is_active
+	`)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	defer stmt.Close()
+
+	insertedUsers := make([]*entity.User, 0, len(users))
+
+	for _, u := range users {
+		insertedUser := &entity.User{}
+
+		err = stmt.QueryRowContext(
+			ctx,
+			u.ID, u.Name, u.TeamName, u.IsActive,
+		).Scan(
+			&insertedUser.ID,
+			&insertedUser.Name,
+			&insertedUser.TeamName,
+			&insertedUser.IsActive,
+		)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+
+		insertedUsers = append(insertedUsers, insertedUser)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return insertedUsers, nil
 }
 
 func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*entity.User, error) {
@@ -57,7 +95,6 @@ func (r *PostgreUserRepository) UpdateIsActive(ctx context.Context, userID strin
 	return nil
 }
 
-// FindByTeam возвращает всех пользователей команды
 func (r *PostgreUserRepository) FindByTeam(ctx context.Context, teamName string) ([]*entity.User, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, name, team_name, is_active FROM users WHERE team_name = $1 ORDER BY name
