@@ -16,3 +16,4 @@ cd pull-request-service
 ```
 docker-compose up --build
 ```
+*The server starts at the address: localhost:8080*
