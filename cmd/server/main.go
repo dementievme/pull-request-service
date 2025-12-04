@@ -38,16 +38,12 @@ func main() {
 
 	repos := postgres.NewRepositories(db)
 
-	pullRequestService := domain.NewPullRequestService(repos.PullRequestRepo)
-	teamService := domain.NewTeamService(repos.TeamRepo)
-	userService := domain.NewUserService(repos.UserRepo)
+	services := domain.NewServices(repos.PullRequestRepo, repos.TeamRepo, repos.UserRepo)
 
-	pullRequestUseCase := usecase.NewPullRequestUseCase(pullRequestService)
-	teamUseCase := usecase.NewTeamUseCase(teamService)
-	userUseCase := usecase.NewUserUseCase(userService)
+	useCases := usecase.NewUseCases(services.PullRequestService, services.TeamService, services.UserService)
 
 	r := gin.Default()
-	api.RegisterRoutes(r, pullRequestUseCase, teamUseCase, userUseCase)
+	api.RegisterRoutes(r, useCases)
 
 	// Запуск сервера
 	if err := r.Run(":8080"); err != nil {

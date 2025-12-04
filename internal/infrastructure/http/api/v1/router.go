@@ -9,28 +9,26 @@ import (
 
 func RegisterRoutes(
 	r *gin.Engine,
-	pullRequestUseCase *usecase.PullRequestUseCase,
-	teamUseCase *usecase.TeamUseCase,
-	userUseCase *usecase.UserUseCase,
+	usecases *usecase.UseCases,
 ) {
 	r.Use(cors.Default())
 
 	teams := r.Group("/team")
 	{
-		teams.POST("/add", createTeamHandler(teamUseCase))
-		teams.GET("/get", getTeamHandler(teamUseCase))
+		teams.POST("/add", createTeamHandler(usecases.TeamUseCase, usecases.UserUseCase))
+		teams.GET("/get", getTeamHandler(usecases.TeamUseCase))
 	}
 
 	users := r.Group("/users")
 	{
-		users.POST("/setIsActive", setUserActiveHandler(userUseCase))
-		users.GET("/getReview", getUserReviewsHandler(pullRequestUseCase))
+		users.POST("/setIsActive", setUserActiveHandler(usecases.UserUseCase))
+		users.GET("/getReview", getUserReviewsHandler(usecases.PullRequestUseCase))
 	}
 
 	prs := r.Group("/pullRequest")
 	{
-		prs.POST("/create", createPRHandler(pullRequestUseCase))
-		prs.POST("/merge", mergePRHandler(pullRequestUseCase))
-		prs.POST("/reassign", reassignPRHandler(pullRequestUseCase))
+		prs.POST("/create", createPRHandler(usecases.PullRequestUseCase))
+		prs.POST("/merge", mergePRHandler(usecases.PullRequestUseCase))
+		prs.POST("/reassign", reassignPRHandler(usecases.PullRequestUseCase))
 	}
 }

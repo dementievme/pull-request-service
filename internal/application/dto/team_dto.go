@@ -7,6 +7,6 @@ type TeamMemberDTO struct {
 }
 
 type TeamDTO struct {
-	TeamName    string `json:"team_name"`
-	TeamMembers []*TeamMemberDTO
+	TeamName    string           `json:"team_name"`
+	TeamMembers []*TeamMemberDTO `json:"members"`
 }

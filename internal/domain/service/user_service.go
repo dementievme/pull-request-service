@@ -15,7 +15,7 @@ func NewUserService(repo domain.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) Create(ctx context.Context, user *entity.User) error {
+func (s *UserService) Create(ctx context.Context, user []*entity.User) error {
 	return s.repo.Create(ctx, user)
 }
 

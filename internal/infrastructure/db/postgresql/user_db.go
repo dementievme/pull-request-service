@@ -17,20 +17,46 @@ func NewPostgreUserRepository(db *sql.DB) *PostgreUserRepository {
 	return &PostgreUserRepository{db: db}
 }
 
-func (r *PostgreUserRepository) Create(ctx context.Context, user *entity.User) error {
-	_, err := r.db.ExecContext(ctx, `
+func (r *PostgreUserRepository) Create(ctx context.Context, users []*entity.User) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO users (id, name, team_name, is_active)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			team_name = EXCLUDED.team_name,
-			is_active = EXCLUDED.is_active
-	`, user.ID, user.Name, user.TeamName, user.IsActive)
-	return err
+			is_active = EXCLUDED.is_active`)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, u := range users {
+		_, err = stmt.ExecContext(
+			ctx,
+			u.ID, u.Name, u.TeamName, u.IsActive,
+		)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*entity.User, error) {
-	var u entity.User
+	u := &entity.User{}
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, name, team_name, is_active FROM users WHERE id = $1
 	`, userID).Scan(&u.ID, &u.Name, &u.TeamName, &u.IsActive)
@@ -40,7 +66,7 @@ func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*en
 	if err != nil {
 		return nil, err
 	}
-	return &u, nil
+	return u, nil
 }
 
 func (r *PostgreUserRepository) UpdateIsActive(ctx context.Context, userID string, isActive bool) error {
@@ -57,7 +83,6 @@ func (r *PostgreUserRepository) UpdateIsActive(ctx context.Context, userID strin
 	return nil
 }
 
-// FindByTeam возвращает всех пользователей команды
 func (r *PostgreUserRepository) FindByTeam(ctx context.Context, teamName string) ([]*entity.User, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, name, team_name, is_active FROM users WHERE team_name = $1 ORDER BY name
