@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	application "github.com/dementievme/pull-request-service/internal/application/dto"
+	dto "github.com/dementievme/pull-request-service/internal/application/dto"
 	entity "github.com/dementievme/pull-request-service/internal/domain/entity"
 	domain "github.com/dementievme/pull-request-service/internal/domain/repository"
 )
@@ -12,34 +12,60 @@ type TeamUseCase struct {
 	repo domain.TeamRepository
 }
 
-func NewTeamUseCase(repo domain.TeamRepository) *TeamUseCase {
-	return &TeamUseCase{repo: repo}
+func NewTeamUseCase(teamRepo domain.TeamRepository) *TeamUseCase {
+	return &TeamUseCase{repo: teamRepo}
 }
 
-func (u *TeamUseCase) CreateTeam(ctx context.Context, dto *application.TeamDTO) (*application.TeamDTO, error) {
+func (u *TeamUseCase) CreateTeam(ctx context.Context, teamReq *dto.TeamDTO) (*dto.TeamDTO, error) {
 	team := &entity.Team{
-		Name: dto.TeamName,
+		Name: teamReq.TeamName,
 	}
+
 	if err := u.repo.Create(ctx, team); err != nil {
 		return nil, err
 	}
-	return dto, nil
+
+	return teamReq, nil
 }
 
-func (u *TeamUseCase) GetTeam(ctx context.Context, name string) (*application.TeamDTO, error) {
-	t, err := u.repo.GetByName(ctx, name)
+func (u *TeamUseCase) GetTeam(ctx context.Context, teamName string) (*dto.TeamDTO, error) {
+	teamEntity, err := u.repo.GetByName(ctx, teamName)
 	if err != nil {
 		return nil, err
 	}
-	dto := &application.TeamDTO{
-		TeamName: t.Name,
+
+	teamDTO := &dto.TeamDTO{
+		TeamName: teamEntity.Name,
 	}
-	for _, m := range t.Members {
-		dto.TeamMembers = append(dto.TeamMembers, &application.TeamMemberDTO{
-			UserID:   m.ID,
-			UserName: m.Name,
-			IsActive: m.IsActive,
+
+	for _, member := range teamEntity.Members {
+		teamDTO.TeamMembers = append(teamDTO.TeamMembers, &dto.TeamMemberDTO{
+			UserID:   member.ID,
+			UserName: member.Name,
+			IsActive: member.IsActive,
 		})
 	}
-	return dto, nil
+
+	return teamDTO, nil
+}
+
+func (u *TeamUseCase) FindActiveUsers(ctx context.Context, teamName string) (*dto.TeamDTO, error) {
+	activeUsers, err := u.repo.FindActiveUsers(ctx, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &dto.TeamDTO{
+		TeamName: teamName,
+	}
+
+	for _, user := range activeUsers {
+		result.TeamMembers = append(result.TeamMembers, &dto.TeamMemberDTO{
+			UserID:   user.ID,
+			UserName: user.Name,
+			IsActive: user.IsActive,
+		})
+	}
+
+	return result, nil
 }
