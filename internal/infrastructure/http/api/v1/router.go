@@ -27,8 +27,8 @@ func RegisterRoutes(
 
 	prs := r.Group("/pullRequest")
 	{
-		prs.POST("/create", createPRHandler(usecases.PullRequestUseCase))
+		prs.POST("/create", createPRHandler(usecases.PullRequestUseCase, usecases.UserUseCase, usecases.TeamUseCase))
 		prs.POST("/merge", mergePRHandler(usecases.PullRequestUseCase))
-		prs.POST("/reassign", reassignPRHandler(usecases.PullRequestUseCase))
+		prs.POST("/reassign", reassignPRHandler(usecases.PullRequestUseCase, usecases.UserUseCase, usecases.TeamUseCase))
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	errors "github.com/dementievme/pull-request-service/internal/application/errors"
 	entity "github.com/dementievme/pull-request-service/internal/domain/entity"
 )
 
@@ -17,9 +18,7 @@ func NewPostgreTeamRepository(db *sql.DB) *PostgreTeamRepository {
 
 func (r *PostgreTeamRepository) Create(ctx context.Context, team *entity.Team) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO teams (name) 
-		 VALUES ($1)
-		 ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name`,
+		`INSERT INTO teams (name) VALUES ($1)`,
 		team.Name,
 	)
 	return err
@@ -44,7 +43,7 @@ func (r *PostgreTeamRepository) GetByName(ctx context.Context, name string) (*en
 	}
 
 	if len(members) == 0 {
-		return nil, ErrNotFound
+		return nil, errors.ErrNotFound
 	}
 
 	return &entity.Team{

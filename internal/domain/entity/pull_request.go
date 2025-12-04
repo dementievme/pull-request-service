@@ -12,7 +12,7 @@ const (
 type PullRequest struct {
 	ID                  string
 	Name                string
-	AuthorID            int64
+	AuthorID            string
 	Status              PRStatus
 	AssignedReviewerIDs []string
 	CreatedAt           *time.Time

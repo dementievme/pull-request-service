@@ -7,6 +7,7 @@ import (
 
 	"github.com/lib/pq"
 
+	errors "github.com/dementievme/pull-request-service/internal/application/errors"
 	entity "github.com/dementievme/pull-request-service/internal/domain/entity"
 )
 
@@ -19,33 +20,29 @@ func NewPostgrePullRequestRepository(db *sql.DB) *PostgrePullRequestRepository {
 }
 
 func (r *PostgrePullRequestRepository) Create(ctx context.Context, pr *entity.PullRequest) error {
-	now := time.Now()
-
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO pull_requests (id, name, author_id, status, assigned_reviewers, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6)`,
-		pr.ID, pr.Name, pr.AuthorID, string(pr.Status), pq.Array(pr.AssignedReviewerIDs), now,
+		pr.ID, pr.Name, pr.AuthorID, string(pr.Status), pq.Array(pr.AssignedReviewerIDs), pr.CreatedAt,
 	)
 	if err != nil {
 		return err
 	}
-	pr.CreatedAt = &now
 	return nil
 }
 
 func (r *PostgrePullRequestRepository) GetByID(ctx context.Context, prID string) (*entity.PullRequest, error) {
 	pr := &entity.PullRequest{}
-	var status string
 
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, name, author_id, status, assigned_reviewers, created_at, merged_at
 		 FROM pull_requests WHERE id=$1`,
 		prID,
-	).Scan(&pr.ID, &pr.Name, &pr.AuthorID, &status, pq.Array(&pr.AssignedReviewerIDs), &pr.CreatedAt, &pr.MergedAt)
+	).Scan(&pr.ID, &pr.Name, &pr.AuthorID, &pr.Status, pq.Array(&pr.AssignedReviewerIDs), &pr.CreatedAt, &pr.MergedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, errors.ErrNotFound
 		}
 		return nil, err
 	}

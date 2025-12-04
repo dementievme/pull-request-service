@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	errors "github.com/dementievme/pull-request-service/internal/application/errors"
 	entity "github.com/dementievme/pull-request-service/internal/domain/entity"
 
 	_ "github.com/lib/pq"
@@ -61,7 +62,7 @@ func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*en
 		SELECT id, name, team_name, is_active FROM users WHERE id = $1
 	`, userID).Scan(&u.ID, &u.Name, &u.TeamName, &u.IsActive)
 	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
+		return nil, errors.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func (r *PostgreUserRepository) UpdateIsActive(ctx context.Context, userID strin
 	}
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		return ErrNotFound
+		return errors.ErrNotFound
 	}
 	return nil
 }
@@ -101,7 +102,7 @@ func (r *PostgreUserRepository) FindByTeam(ctx context.Context, teamName string)
 		users = append(users, &u)
 	}
 	if len(users) == 0 {
-		return nil, ErrNotFound
+		return nil, errors.ErrNotFound
 	}
 	return users, rows.Err()
 }
