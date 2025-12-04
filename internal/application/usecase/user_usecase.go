@@ -32,7 +32,7 @@ func (u *UserUseCase) SetActive(ctx context.Context, dto *application.SetActiveU
 	}, nil
 }
 
-func (u *UserUseCase) Create(ctx context.Context, dto *application.TeamDTO) ([]*application.TeamMemberDTO, error) {
+func (u *UserUseCase) Create(ctx context.Context, dto *application.TeamDTO) error {
 	users := make([]*entity.User, 0, len(dto.TeamMembers))
 
 	for _, member := range dto.TeamMembers {
@@ -44,19 +44,10 @@ func (u *UserUseCase) Create(ctx context.Context, dto *application.TeamDTO) ([]*
 		})
 	}
 
-	insertedUsers, err := u.repo.Create(ctx, users)
+	err := u.repo.Create(ctx, users)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	insertedUsersDTOs := make([]*application.TeamMemberDTO, 0, len(insertedUsers))
-	for _, user := range insertedUsers {
-		insertedUsersDTOs = append(insertedUsersDTOs, &application.TeamMemberDTO{
-			UserID:   user.ID,
-			UserName: user.Name,
-			IsActive: user.IsActive,
-		})
-	}
-
-	return insertedUsersDTOs, nil
+	return nil
 }

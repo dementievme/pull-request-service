@@ -21,12 +21,11 @@ func createTeamHandler(teamUseCase *application.TeamUseCase, userUseCase *applic
 			return
 		}
 
-		insertedUsers, err := userUseCase.Create(c, &dto)
+		err := userUseCase.Create(c, &dto)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		dto.TeamMembers = insertedUsers
 
 		c.JSON(http.StatusCreated, gin.H{"team": dto})
 	}

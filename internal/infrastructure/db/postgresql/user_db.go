@@ -17,10 +17,10 @@ func NewPostgreUserRepository(db *sql.DB) *PostgreUserRepository {
 	return &PostgreUserRepository{db: db}
 }
 
-func (r *PostgreUserRepository) Create(ctx context.Context, users []*entity.User) ([]*entity.User, error) {
+func (r *PostgreUserRepository) Create(ctx context.Context, users []*entity.User) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	stmt, err := tx.PrepareContext(ctx, `
@@ -29,46 +29,34 @@ func (r *PostgreUserRepository) Create(ctx context.Context, users []*entity.User
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			team_name = EXCLUDED.team_name,
-			is_active = EXCLUDED.is_active
-		RETURNING id, name, team_name, is_active
-	`)
+			is_active = EXCLUDED.is_active`)
+
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return err
 	}
 	defer stmt.Close()
 
-	insertedUsers := make([]*entity.User, 0, len(users))
-
 	for _, u := range users {
-		insertedUser := &entity.User{}
-
-		err = stmt.QueryRowContext(
+		_, err = stmt.ExecContext(
 			ctx,
 			u.ID, u.Name, u.TeamName, u.IsActive,
-		).Scan(
-			&insertedUser.ID,
-			&insertedUser.Name,
-			&insertedUser.TeamName,
-			&insertedUser.IsActive,
 		)
 		if err != nil {
 			tx.Rollback()
-			return nil, err
+			return err
 		}
-
-		insertedUsers = append(insertedUsers, insertedUser)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, err
+		return err
 	}
 
-	return insertedUsers, nil
+	return nil
 }
 
 func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*entity.User, error) {
-	var u entity.User
+	u := &entity.User{}
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, name, team_name, is_active FROM users WHERE id = $1
 	`, userID).Scan(&u.ID, &u.Name, &u.TeamName, &u.IsActive)
@@ -78,7 +66,7 @@ func (r *PostgreUserRepository) GetByID(ctx context.Context, userID string) (*en
 	if err != nil {
 		return nil, err
 	}
-	return &u, nil
+	return u, nil
 }
 
 func (r *PostgreUserRepository) UpdateIsActive(ctx context.Context, userID string, isActive bool) error {
